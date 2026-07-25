@@ -15,9 +15,9 @@ public static class PluginIPC
     public static void SpeakWithOptions
     (
         string text,
-        int    speed,
-        int    pitch,
-        int    volume
+        int?   speed = null,
+        int?   pitch = null,
+        int?   volume = null
     ) =>
         Plugin.Speak(text, speed, pitch, volume);
 
@@ -33,10 +33,10 @@ public static class PluginIPC
     public static Task SpeakWithOptionsAsync
     (
         string            text,
-        int               speed,
-        int               pitch,
-        int               volume,
-        CancellationToken cancellationToken
+        int?              speed = null,
+        int?              pitch = null,
+        int?              volume = null,
+        CancellationToken cancellationToken = default
     ) =>
         Plugin.SpeakAsync(text, speed, pitch, volume, cancellationToken);
 
@@ -51,9 +51,9 @@ public static class PluginIPC
     public static void SynthesizeWithOptions
     (
         string text,
-        int    speed,
-        int    pitch,
-        int    volume
+        int?   speed = null,
+        int?   pitch = null,
+        int?   volume = null
     ) =>
         Plugin.Synthesize(text, speed, pitch, volume);
 
@@ -69,10 +69,10 @@ public static class PluginIPC
     public static Task SynthesizeWithOptionsAsync
     (
         string            text,
-        int               speed,
-        int               pitch,
-        int               volume,
-        CancellationToken cancellationToken
+        int?              speed = null,
+        int?              pitch = null,
+        int?              volume = null,
+        CancellationToken cancellationToken = default
     ) =>
         Plugin.SynthesizeAsync(text, speed, pitch, volume, cancellationToken);
 }
