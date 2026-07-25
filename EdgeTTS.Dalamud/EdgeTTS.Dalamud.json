@@ -3,7 +3,7 @@
     "Name": "EdgeTTS.Dalamud",
     "Punchline": "提供自然语言合成文本转语音服务 / Provide Neural TTS Service",
     "Description": "依托微软 Azure 自然语音合成提供更加强大、流畅的文本转语音服务\nLeverage Microsoft Azure Neural Text-to-Speech to provide a more powerful and fluid text-to-speech service within Dalamud.",
-    "IconUrl": "https://raw.githubusercontent.com/Dalamud-DailyRoutines/DailyRoutines/main/Resources/icon.png",
+    "IconUrl": "https://gh.atmoomen.top/raw.githubusercontent.com/AtmoOmen/EdgeTTS.Dalamud/main/EdgeTTS.Dalamud/Assets/icon.png",
     "RepoUrl": "https://github.com/AtmoOmen/EdgeTTS.Dalamud",
     "ApplicableVersion": "any",
     "Tags": [
