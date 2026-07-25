@@ -1,0 +1,21 @@
+<Project>
+    <PropertyGroup>
+        <Use_Dalamud_CN>true</Use_Dalamud_CN>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <ImplicitUsings>true</ImplicitUsings>
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+        <BaseOutputPath>$(SolutionDir)bin</BaseOutputPath>
+        <SatelliteResourceLanguages>xxx</SatelliteResourceLanguages>
+        <NoWarn>1701;1702;CS0414;CS8601;CS8602;CS8604;CS8603;IDE1006;IDE0300;MSB3270;MSB324;CS0649;CA2211;CS8509;CS8625;MSB3305;CS8618;CS8600;CS8605;CS8620</NoWarn>
+        <DebugType>none</DebugType>
+        <DebugSymbols>false</DebugSymbols>
+        <Optimize>True</Optimize>
+        <LangVersion>preview</LangVersion>
+    </PropertyGroup>
+</Project>
