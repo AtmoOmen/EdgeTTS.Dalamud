@@ -1,0 +1,6 @@
+[submodule "EdgeTTS.Dalamud/EdgeTTS"]
+	path = EdgeTTS
+	url = https://github.com/AtmoOmen/EdgeTTS.git
+[submodule "EdgeTTS.Dalamud/OmenTools"]
+	path = OmenTools
+	url = https://github.com/AtmoOmen/OmenTools.git
