@@ -1,0 +1,25 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Create Release
+        run: >
+          gh release create "${{ github.ref_name }}"
+          bin/Release/EdgeTTS.Dalamud/latest.zip
+          --title "${{ github.ref_name }}"
+          --verify-tag
+        env:
+          GH_TOKEN: ${{ github.token }}
