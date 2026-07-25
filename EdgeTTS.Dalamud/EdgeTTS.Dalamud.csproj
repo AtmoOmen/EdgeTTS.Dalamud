@@ -4,7 +4,7 @@
         <Title>EdgeTTS.Dalamud</Title>
         <Description>Leverage Microsoft Azure Neural Text-to-Speech to provide a more powerful and fluid text-to-speech service within Dalamud.</Description>
         <Authors>AtmoOmen</Authors>
-        <Version>1.0.0.0</Version>
+        <Version>1.0.1.0</Version>
     </PropertyGroup>
 
     <ItemGroup>
