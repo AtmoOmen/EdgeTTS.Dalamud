@@ -1,3 +1,7 @@
 <Solution>
+  <Folder Name="/Libs/">
+    <Project Path="EdgeTTS/EdgeTTS.csproj" />
+    <Project Path="OmenTools/OmenTools.csproj" />
+  </Folder>
   <Project Path="EdgeTTS.Dalamud/EdgeTTS.Dalamud.csproj" />
 </Solution>

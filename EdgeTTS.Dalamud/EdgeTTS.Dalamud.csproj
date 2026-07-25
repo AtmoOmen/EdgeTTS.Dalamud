@@ -5,6 +5,15 @@
         <Description>Leverage Microsoft Azure Neural Text-to-Speech to provide a more powerful and fluid text-to-speech service within Dalamud.</Description>
         <Authors>AtmoOmen</Authors>
         <Version>2.1.4.0</Version>
+        <UseWindowsForms>true</UseWindowsForms>
     </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\EdgeTTS\EdgeTTS.csproj"/>
+        <ProjectReference Include="..\OmenTools\OmenTools.csproj"/>
+        <None Include="Assets\Langs\*.json" CopyToOutputDirectory="Always"/>
+        <None Include="Assets\icon.png" CopyToOutputDirectory="Always"/>
+        <None Include="EdgeTTS.Dalamud.json"/>
+    </ItemGroup>
 
 </Project>
