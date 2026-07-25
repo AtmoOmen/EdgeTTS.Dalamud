@@ -26,26 +26,26 @@ public sealed class Plugin : IAsyncDalamudPlugin
     )
     {
         DService.Init(pluginInterface);
-        
+
         Loc.Initialize(Path.Combine(pluginInterface.AssemblyLocation.DirectoryName, "Assets", "Langs"));
-        
+
         PluginConfig = pluginInterface.GetPluginConfig() as PluginConfig ?? new();
-        
+
         Engine = new
         (
             Path.Combine(pluginInterface.GetPluginConfigDirectory(), "Cache"),
             pluginInterface.AssemblyLocation.DirectoryName,
             DLog.Debug
         );
-        
+
         Save();
-        
+
         WindowManager.Instance().AddWindow<MainWindow>();
-        
-        CommandManager.Instance().MainCommand  =  new("/edgetts", new(OnCommand) { HelpMessage = Loc.Get("Command.MainHelp") });
-        
+
+        CommandManager.Instance().MainCommand = new("/edgetts", new(OnCommand) { HelpMessage = Loc.Get("Command.MainHelp") });
+
         pluginInterface.UiBuilder.OpenConfigUi += OpenConfigUi;
-        
+
         IPCAttributeRegistry.RegStaticIPCs(typeof(PluginIPC));
         return Task.CompletedTask;
     }
