@@ -5,7 +5,6 @@
     "Gender.Male": "男",
     "Window.AddReplacement": "添加",
     "Window.AudioDevice": "输出设备",
-    "Window.ContentCategories": "内容分类",
     "Window.CurrentVoice": "当前音色",
     "Window.DefaultDevice": "系统默认设备",
     "Window.DefaultOption": "默认",
@@ -32,7 +31,6 @@
     "Window.TestText": "测试文本",
     "Window.Title": "EdgeTTS 设置",
     "Window.VoiceOptions": "基础参数",
-    "Window.VoicePersonalities": "声音性格",
     "Window.Voices": "音色",
     "Window.Volume": "音量",
     "Window.Language": "语言"

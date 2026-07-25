@@ -5,7 +5,6 @@
     "Gender.Male": "남성",
     "Window.AddReplacement": "추가",
     "Window.AudioDevice": "출력 장치",
-    "Window.ContentCategories": "콘텐츠 카테고리",
     "Window.CurrentVoice": "현재 음성",
     "Window.DefaultDevice": "시스템 기본 장치",
     "Window.DefaultOption": "기본값",
@@ -32,7 +31,6 @@
     "Window.TestText": "테스트 텍스트",
     "Window.Title": "EdgeTTS 설정",
     "Window.VoiceOptions": "기본 매개변수",
-    "Window.VoicePersonalities": "음성 성격",
     "Window.Voices": "음성",
     "Window.Volume": "볼륨",
     "Window.Language": "언어"

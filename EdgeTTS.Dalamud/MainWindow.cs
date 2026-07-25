@@ -120,29 +120,6 @@ internal sealed class MainWindow : Window
         else if (settingsRole != null)
             dashboardVM.SetRole(null);
 
-        // ── 多选标签 ──
-        var changed = DrawMultiSelect
-        (
-            Lang.Get("Window.ContentCategories"),
-            "ContentCategories",
-            tag.ContentCategories,
-            settingsContentCategories
-        );
-
-        if (changed)
-            Plugin.Save();
-
-        changed = DrawMultiSelect
-        (
-            Lang.Get("Window.VoicePersonalities"),
-            "VoicePersonalities",
-            tag.VoicePersonalities,
-            settingsVoicePersonalities
-        );
-
-        if (changed)
-            Plugin.Save();
-
         ImGui.Spacing();
         ImGui.Separator();
 
@@ -431,9 +408,7 @@ internal sealed class MainWindow : Window
     //  快捷属性 — settings 字段的简写
     // ════════════════════════════════════════════════════════════════
 
-    private EdgeTTSSettings settings                   => Plugin.Config.Settings;
-    private string?         settingsStyle              => settings.Style;
-    private string?         settingsRole               => settings.Role;
-    private List<string>    settingsContentCategories  => settings.ContentCategories;
-    private List<string>    settingsVoicePersonalities => settings.VoicePersonalities;
+    private EdgeTTSSettings settings      => Plugin.Config.Settings;
+    private string?         settingsStyle => settings.Style;
+    private string?         settingsRole  => settings.Role;
 }

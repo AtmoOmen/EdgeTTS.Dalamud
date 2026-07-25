@@ -5,7 +5,6 @@
     "Gender.Male": "Homme",
     "Window.AddReplacement": "Ajouter",
     "Window.AudioDevice": "Périphérique audio",
-    "Window.ContentCategories": "Catégories de contenu",
     "Window.CurrentVoice": "Voix actuelle",
     "Window.DefaultDevice": "Périphérique système par défaut",
     "Window.DefaultOption": "Par défaut",
@@ -32,7 +31,6 @@
     "Window.TestText": "Texte de test",
     "Window.Title": "Paramètres EdgeTTS",
     "Window.VoiceOptions": "Paramètres de base",
-    "Window.VoicePersonalities": "Personnalités vocales",
     "Window.Voices": "Voix",
     "Window.Volume": "Volume",
     "Window.Language": "Langue"

@@ -5,7 +5,6 @@
     "Gender.Male": "Männlich",
     "Window.AddReplacement": "Hinzufügen",
     "Window.AudioDevice": "Audiogerät",
-    "Window.ContentCategories": "Inhaltskategorien",
     "Window.CurrentVoice": "Aktuelle Stimme",
     "Window.DefaultDevice": "Systemstandardgerät",
     "Window.DefaultOption": "Standard",
@@ -32,7 +31,6 @@
     "Window.TestText": "Testtext",
     "Window.Title": "EdgeTTS-Einstellungen",
     "Window.VoiceOptions": "Grundparameter",
-    "Window.VoicePersonalities": "Stimmpersönlichkeiten",
     "Window.Voices": "Stimmen",
     "Window.Volume": "Lautstärke",
     "Window.Language": "Sprache"

@@ -220,8 +220,6 @@ public sealed class Plugin : IAsyncDalamudPlugin
             Style               = source.Style,
             StyleDegree         = source.StyleDegree,
             Role                = source.Role,
-            ContentCategories   = [.. source.ContentCategories],
-            VoicePersonalities  = [.. source.VoicePersonalities],
             PhonemeReplacements = new(source.PhonemeReplacements)
         };
 
