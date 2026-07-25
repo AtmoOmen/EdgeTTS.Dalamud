@@ -228,7 +228,7 @@ public sealed class Plugin : IAsyncDalamudPlugin
     private static void OpenConfigUi()
     {
         if (WindowManager.Instance().Get<MainWindow>() is { } window)
-            window.IsOpen = true;
+            window.IsOpen ^= true;
     }
 
     private static void OnCommand
