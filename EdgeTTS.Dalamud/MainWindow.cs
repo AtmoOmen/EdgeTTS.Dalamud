@@ -1,38 +1,36 @@
+using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using EdgeTTS.Dalamud.ViewModels;
 using EdgeTTS.Models;
+using OmenTools.Extensions;
 
 namespace EdgeTTS.Dalamud;
 
 internal sealed class MainWindow : Window
 {
-    private const string TEST_TEXT = "异国的诗人提出疑问。如果欧米茄作为兵器不断地获得力量并且一直战斗下去的话, 它真的能够找到渴求的答案吗?";
-
-    private string testText         = TEST_TEXT;
-    private string replacementKey   = string.Empty;
-    private string replacementValue = string.Empty;
-    private string voiceSearchQuery = string.Empty;
-    private bool   optionsInitialized;
+    private readonly VoiceExplorerViewModel voiceVM;
+    private readonly DashboardViewModel     dashboardVM;
+    private readonly SettingsViewModel      settingsVM;
 
     public MainWindow() : base(Loc.Get("Window.Title"))
     {
-        Size          = new(720f, 600f);
+        var settings = Plugin.PluginConfig.Settings;
+        var engine   = Plugin.Engine;
+        var save     = Plugin.Save;
+
+        voiceVM     = new(engine, settings, save);
+        dashboardVM = new(engine, settings, save);
+        settingsVM  = new(engine, settings, save);
+
+        Size          = new(800f, 650f);
         SizeCondition = ImGuiCond.FirstUseEver;
-        Flags         = ImGuiWindowFlags.NoCollapse;
     }
 
     public override void Draw()
     {
-        var settings = Plugin.PluginConfig.Settings;
-
-        if (!optionsInitialized)
-        {
-            testText           = TEST_TEXT;
-            optionsInitialized = true;
-        }
-
-        DrawHeader(settings);
+        DrawHeader();
 
         ImGui.Spacing();
 
@@ -40,257 +38,221 @@ internal sealed class MainWindow : Window
         if (!tabBar)
             return;
 
+        using (var tab = ImRaii.TabItem(Loc.Get("Window.TabDashboard")))
+        {
+            if (tab)
+                DrawDashboard();
+        }
+
         using (var tab = ImRaii.TabItem(Loc.Get("Window.TabVoices")))
         {
             if (tab)
-                DrawVoiceExplorer(settings);
+                DrawVoiceExplorer();
         }
 
-        using (var tab = ImRaii.TabItem(Loc.Get("Window.TabOptions")))
+        using (var tab = ImRaii.TabItem(Loc.Get("Window.TabSettings")))
         {
             if (tab)
-                DrawVoiceOptions(settings);
-        }
-
-        using (var tab = ImRaii.TabItem(Loc.Get("Window.TabPhonemes")))
-        {
-            if (tab)
-                DrawPhonemeReplacements(settings);
-        }
-
-        using (var tab = ImRaii.TabItem(Loc.Get("Window.TabDevice")))
-        {
-            if (tab)
-                DrawAudioDevice(settings);
+                DrawSettings();
         }
     }
 
-    private static void DrawHeader
-    (
-        EdgeTTSSettings settings
-    )
+    private void DrawHeader()
     {
-        var selectedVoice = GetSelectedVoice(settings);
+        var voice = dashboardVM.SelectedVoice;
 
-        if (selectedVoice == null)
+        if (voice == null)
         {
-            ImGui.Spacing();
+            ImGui.TextDisabled(Loc.Get("Window.NoVoiceSelected"));
+            ImGui.Separator();
             return;
         }
-
-        ImGui.TextUnformatted
-        (
-            $"{Loc.Get("Window.CurrentVoice")}: {selectedVoice.FriendlyName} ({selectedVoice.LocaleInfo.DisplayName} / {Loc.Get($"Gender.{selectedVoice.Gender}")})"
-        );
+        
+        ImGui.TextUnformatted($"{Loc.Get("Window.CurrentVoice")}: ");
+        
+        ImGui.SameLine();
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), voice.FriendlyName);
+        
+        ImGui.SameLine();
+        ImGui.TextDisabled($"({voice.LocaleInfo.DisplayName} / {Loc.Get($"Gender.{voice.Gender}")})");
+        
+        ImGui.Spacing();
+        ImGui.Separator();
     }
 
-    private void DrawVoiceExplorer
-    (
-        EdgeTTSSettings settings
-    )
+    private void DrawDashboard()
     {
+        dashboardVM.SyncFromSettings();
+
+        using var child = ImRaii.Child("DashboardChild", new(0f, 0f), false, ImGuiWindowFlags.NoScrollbar);
+        if (!child)
+            return;
+
+        // ── 基础参数 ──
+        ImGui.TextUnformatted(Loc.Get("Window.VoiceOptions"));
+        ImGui.Separator();
+
+        DrawSliderWithDefault(Loc.Get("Window.Speed"),  "##SpeedSlider",  ref dashboardVM.SpeedRef,  1, 200);
+        DrawSliderWithDefault(Loc.Get("Window.Pitch"),  "##PitchSlider",  ref dashboardVM.PitchRef,  1, 200);
+        DrawSliderWithDefault(Loc.Get("Window.Volume"), "##VolumeSlider", ref dashboardVM.VolumeRef, 0, 100);
+
+        ImGui.Spacing();
+        ImGui.Separator();
+
+        // ── 表现参数 ──
+        var tag       = dashboardVM.CurrentVoiceTag;
+        var hasStyles = tag.Styles.Count > 0;
+        var hasRoles  = tag.Roles.Count  > 0;
+
+        // 风格
+        if (hasStyles)
+            DrawSingleSelect(Loc.Get("Window.Style"), "StyleSelect", tag.Styles, settingsStyle, dashboardVM.SetStyle);
+        else if (settingsStyle != null)
+            dashboardVM.SetStyle(null);
+
+        // 风格强度: 仅在有风格可选时显示
+        if (hasStyles)
+            DrawSliderWithDefault(Loc.Get("Window.StyleDegree"), "##StyleDegreeSlider", ref dashboardVM.StyleDegreeRef, 1, 200);
+
+        // 角色
+        if (hasRoles)
+            DrawSingleSelect(Loc.Get("Window.Role"), "RoleSelect", tag.Roles, settingsRole, dashboardVM.SetRole);
+        else if (settingsRole != null)
+            dashboardVM.SetRole(null);
+
+        // ── 多选标签 ──
+        var changed = DrawMultiSelect
+        (
+            Loc.Get("Window.ContentCategories"),
+            "ContentCategories",
+            tag.ContentCategories,
+            settingsContentCategories
+        );
+
+        if (changed)
+            Plugin.Save();
+
+        changed = DrawMultiSelect
+        (
+            Loc.Get("Window.VoicePersonalities"),
+            "VoicePersonalities",
+            tag.VoicePersonalities,
+            settingsVoicePersonalities
+        );
+
+        if (changed)
+            Plugin.Save();
+
+        ImGui.Spacing();
+        ImGui.Separator();
+
+        // ── 测试文本与播放 ──
+        ImGui.TextUnformatted(Loc.Get("Window.TestText"));
+
+        var testText = dashboardVM.TestText;
         ImGui.SetNextItemWidth(-1f);
-        ImGui.InputTextWithHint("##VoiceSearchInput", Loc.Get("Window.SearchVoice"), ref voiceSearchQuery, 256);
+
+        if (ImGui.InputTextMultiline
+            (
+                "##EdgeTTSTestTextInput",
+                ref testText,
+                2048,
+                new Vector2(-1f, 100f) * GlobalUIScale
+            ))
+            dashboardVM.TestText = testText;
+
+        if (ImGui.Button(Loc.Get("Window.ReadTest"), new(ImGui.GetContentRegionAvail().X, 0f)))
+            dashboardVM.SpeakTest();
+    }
+
+    private void DrawVoiceExplorer()
+    {
+        // 搜索栏
+        var search = voiceVM.SearchQuery;
+        ImGui.SetNextItemWidth(-1f);
+
+        if (ImGui.InputTextWithHint("##VoiceSearchInput", Loc.Get("Window.SearchVoice"), ref search, 256))
+            voiceVM.SearchQuery = search;
+
         ImGui.Spacing();
 
+        // 语音树
         using var child = ImRaii.Child("VoiceTreeChild", new(0f, 0f), true);
         if (!child)
             return;
 
-        var search    = voiceSearchQuery.Trim();
-        var hasSearch = !string.IsNullOrWhiteSpace(search);
+        var hasSearch = !string.IsNullOrWhiteSpace(voiceVM.SearchQuery.Trim());
 
-        foreach (var (locale, genders) in Plugin.Engine.Voices)
+        foreach (var (locale, genders) in voiceVM.GetFilteredTree())
         {
-            var localeMatches = hasSearch && locale.Contains(search, StringComparison.OrdinalIgnoreCase);
-
-            var matchesInLocale = false;
-
-            if (hasSearch && !localeMatches)
-            {
-                foreach (var voiceList in genders.Values)
-                {
-                    if (voiceList.Any
-                        (v => v.FriendlyName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                              v.ShortName.Contains(search, StringComparison.OrdinalIgnoreCase)    ||
-                              v.Gender.Contains(search, StringComparison.OrdinalIgnoreCase)
-                        ))
-                    {
-                        matchesInLocale = true;
-                        break;
-                    }
-                }
-
-                if (!matchesInLocale)
-                    continue;
-            }
-
             var treeFlags = hasSearch ?
                                 ImGuiTreeNodeFlags.DefaultOpen :
                                 ImGuiTreeNodeFlags.None;
+
             using var localeNode = ImRaii.TreeNode(locale, treeFlags);
             if (!localeNode)
                 continue;
 
             foreach (var (gender, voices) in genders)
             {
-                IReadOnlyList<VoiceInfo> matchingVoices = hasSearch && !localeMatches ?
-                                                              voices.Where
-                                                              (v => v.FriendlyName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                                                                    v.ShortName.Contains(search, StringComparison.OrdinalIgnoreCase)    ||
-                                                                    v.Gender.Contains(search, StringComparison.OrdinalIgnoreCase)
-                                                              ).ToArray() :
-                                                              voices;
-
-                if (hasSearch && !localeMatches && matchingVoices.Count == 0)
-                    continue;
-
-                using var genderNode = ImRaii.TreeNode($"{gender}###{locale}-{gender}", treeFlags);
+                using var genderNode = ImRaii.TreeNode($"{Loc.Get($"Gender.{gender}")}###{locale}-{gender}", treeFlags);
                 if (!genderNode)
                     continue;
 
-                foreach (var voice in matchingVoices)
+                foreach (var voice in voices)
                 {
-                    var selected = string.Equals(settings.Voice, voice.ShortName, StringComparison.OrdinalIgnoreCase);
+                    var selected = voiceVM.IsSelected(voice.ShortName);
 
                     if (ImGui.Selectable($"{voice.FriendlyName}###{voice.ShortName}", selected))
                     {
-                        settings.Voice = voice.ShortName;
-                        var tag = voice.VoiceTag ?? new();
-                        settings.ContentCategories.RemoveAll(value => !tag.ContentCategories.Contains(value, StringComparer.OrdinalIgnoreCase));
-                        settings.VoicePersonalities.RemoveAll(value => !tag.VoicePersonalities.Contains(value, StringComparer.OrdinalIgnoreCase));
-                        if (tag.Styles.Count == 0 || !tag.Styles.Contains(settings.Style ?? string.Empty, StringComparer.OrdinalIgnoreCase))
-                            settings.Style = null;
-                        if (tag.Roles.Count == 0 || !tag.Roles.Contains(settings.Role ?? string.Empty, StringComparer.OrdinalIgnoreCase))
-                            settings.Role = null;
-                        Plugin.Save();
+                        voiceVM.SelectVoice(voice);
+                        ImGui.SetScrollHereY();
                     }
 
                     if (ImGui.IsItemHovered())
-                        ImGui.SetTooltip($"{voice.FriendlyName}\n{voice.ShortName}");
+                        ImGui.SetTooltip($"{voice.FriendlyName}\n{voice.ShortName}\n{voice.Gender} / {voice.Locale}");
                 }
             }
         }
     }
 
-    private void DrawVoiceOptions
-    (
-        EdgeTTSSettings settings
-    )
+    private void DrawSettings()
     {
-        using var child = ImRaii.Child("VoiceOptionsChild", new(0f, 0f), false);
+        using var child = ImRaii.Child("SettingsChild", new(0f, 0f), false);
         if (!child)
             return;
 
-        var changed = false;
-
-        ImGui.TextUnformatted(Loc.Get("Window.VoiceOptions"));
-        ImGui.Separator();
-
-        var speed = settings.Speed;
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 80f);
-
-        if (ImGui.SliderInt(Loc.Get("Window.Speed"), ref speed, 1, 200))
-        {
-            settings.Speed = speed;
-            changed        = true;
-        }
-
-        var pitch = settings.Pitch;
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 80f);
-
-        if (ImGui.SliderInt(Loc.Get("Window.Pitch"), ref pitch, 1, 200))
-        {
-            settings.Pitch = pitch;
-            changed        = true;
-        }
-
-        var volume = settings.Volume;
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 80f);
-
-        if (ImGui.SliderInt(Loc.Get("Window.Volume"), ref volume, 0, 100))
-        {
-            settings.Volume = volume;
-            changed         = true;
-        }
-
-        ImGui.Spacing();
-        ImGui.Separator();
-
-        var voiceTag = GetSelectedVoice(settings)?.VoiceTag ?? new();
-        var style    = settings.Style;
-
-        if (voiceTag.Styles.Count != 0 && DrawSingleSelection(Loc.Get("Window.Style"), "Style", voiceTag.Styles, ref style))
-        {
-            settings.Style = style;
-            changed        = true;
-        }
-        else if (voiceTag.Styles.Count == 0 && settings.Style != null)
-        {
-            settings.Style = null;
-            changed        = true;
-        }
-
-        var styleDegree = settings.StyleDegree;
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 80f);
-
-        if (ImGui.SliderInt(Loc.Get("Window.StyleDegree"), ref styleDegree, 1, 200))
-        {
-            settings.StyleDegree = styleDegree;
-            changed              = true;
-        }
-
-        var role = settings.Role;
-
-        if (voiceTag.Roles.Count != 0 && DrawSingleSelection(Loc.Get("Window.Role"), "Role", voiceTag.Roles, ref role))
-        {
-            settings.Role = role;
-            changed       = true;
-        }
-        else if (voiceTag.Roles.Count == 0 && settings.Role != null)
-        {
-            settings.Role = null;
-            changed       = true;
-        }
-
-        changed |= DrawMultiSelection(Loc.Get("Window.ContentCategories"),  "ContentCategories",  voiceTag.ContentCategories,  settings.ContentCategories);
-        changed |= DrawMultiSelection(Loc.Get("Window.VoicePersonalities"), "VoicePersonalities", voiceTag.VoicePersonalities, settings.VoicePersonalities);
-
-        ImGui.Spacing();
-        ImGui.Separator();
-
-        ImGui.TextUnformatted(Loc.Get("Window.TestText"));
-        ImGui.InputTextMultiline("##EdgeTTSTestTextInput", ref testText, 2048, new(-1f, 100f));
-
-        if (ImGui.Button(Loc.Get("Window.ReadTest")))
-            Plugin.Speak(testText);
-
-        if (changed)
-            Plugin.Save();
-    }
-
-    private void DrawPhonemeReplacements
-    (
-        EdgeTTSSettings settings
-    )
-    {
-        using var child = ImRaii.Child("PhonemeChild", new(0f, 0f), false);
-        if (!child)
-            return;
-
+        // ── 音素替换 ──
         ImGui.TextUnformatted(Loc.Get("Window.PhonemeReplacements"));
         ImGui.Separator();
 
-        using (var table = ImRaii.Table("EdgeTTSPhonemeTable", 3, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit))
+        var replacements = settingsVM.Replacements;
+
+        if (replacements.Count == 0)
+            ImGui.TextDisabled(Loc.Get("Window.NoReplacements"));
+        else
         {
+            using var table = ImRaii.Table
+            (
+                "EdgeTTSPhonemeTable",
+                3,
+                ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit
+            );
+
             if (table)
             {
                 ImGui.TableSetupColumn(Loc.Get("Window.OriginalText"),    ImGuiTableColumnFlags.WidthStretch, 0.4f);
                 ImGui.TableSetupColumn(Loc.Get("Window.ReplacementText"), ImGuiTableColumnFlags.WidthStretch, 0.4f);
-                ImGui.TableSetupColumn(Loc.Get("Window.Remove"),          ImGuiTableColumnFlags.WidthFixed,   80f);
+                ImGui.TableSetupColumn
+                (
+                    "##Actions",
+                    ImGuiTableColumnFlags.WidthFixed,
+                    ImGui.CalcTextSize(Loc.Get("Window.Remove")).X + (20f * GlobalUIScale)
+                );
+                
                 ImGui.TableHeadersRow();
 
-                foreach (var pair in settings.PhonemeReplacements.ToArray())
+                foreach (var pair in replacements.ToArray())
                 {
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
@@ -299,92 +261,118 @@ internal sealed class MainWindow : Window
                     ImGui.TextUnformatted(pair.Value);
                     ImGui.TableNextColumn();
 
-                    if (ImGui.Button($"{Loc.Get("Window.Remove")}###{pair.Key}"))
-                    {
-                        settings.PhonemeReplacements.Remove(pair.Key);
-                        Plugin.Save();
-                    }
+                    if (ImGui.Button($"{Loc.Get("Window.Remove")}###Remove_{pair.Key}"))
+                        settingsVM.RemoveReplacement(pair.Key);
                 }
             }
         }
 
         ImGui.Spacing();
-        ImGui.SetNextItemWidth(180f);
-        ImGui.InputText("##EdgeTTSReplacementKey", ref replacementKey, 256);
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(180f);
-        ImGui.InputText("##EdgeTTSReplacementValue", ref replacementValue, 256);
-        ImGui.SameLine();
 
-        if (ImGui.Button(Loc.Get("Window.AddReplacement")) && !string.IsNullOrWhiteSpace(replacementKey))
+        // 添加表单
         {
-            settings.PhonemeReplacements[replacementKey] = replacementValue;
-            replacementKey                               = string.Empty;
-            replacementValue                             = string.Empty;
-            Plugin.Save();
+            var key   = settingsVM.ReplacementKey;
+            var value = settingsVM.ReplacementValue;
+
+            ImGui.SetNextItemWidth(100f * GlobalUIScale);
+            ImGui.InputTextWithHint("##ReplacementKeyInput", Loc.Get("Window.OriginalText"), ref key, 256);
+            settingsVM.ReplacementKey = key;
+
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(100f * GlobalUIScale);
+            ImGui.InputTextWithHint("##ReplacementValueInput", Loc.Get("Window.ReplacementText"), ref value, 256);
+            settingsVM.ReplacementValue = value;
+
+            ImGui.SameLine();
+
+            if (ImGui.Button(Loc.Get("Window.AddReplacement")))
+                settingsVM.AddReplacement();
         }
-    }
 
-    private static void DrawAudioDevice
-    (
-        EdgeTTSSettings settings
-    )
-    {
-        using var child = ImRaii.Child("AudioDeviceChild", new(0f, 0f), false);
-        if (!child)
-            return;
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
 
+        // ── 音频设备 ──
         ImGui.TextUnformatted(Loc.Get("Window.AudioDevice"));
         ImGui.Separator();
+        ImGui.SetNextItemWidth(-1f);
 
-        var changed = false;
-        ImGui.SetNextItemWidth(350f);
+        var currentDeviceName = settingsVM.GetDeviceDisplayName(settingsVM.SelectedDeviceId);
 
-        if (ImGui.BeginCombo("##AudioDeviceCombo", GetAudioDeviceName(settings.DeviceID)))
+        using (var combo = ImRaii.Combo("##AudioDeviceCombo", currentDeviceName))
         {
-            foreach (var (id, device) in Plugin.Engine.AudioDevices)
+            if (combo)
             {
-                if (ImGui.Selectable($"{id + 1}. {device.Name}", id == settings.DeviceID))
+                // 默认设备选项
+                if (ImGui.Selectable(Loc.Get("Window.DefaultDevice"), settingsVM.SelectedDeviceId == -1))
+                    settingsVM.SelectDevice(-1);
+
+                foreach (var (id, device) in settingsVM.Devices)
                 {
-                    settings.DeviceID = id;
-                    changed           = true;
+                    var label = $"{id + 1}. {device.Name}";
+
+                    if (ImGui.Selectable(label, id == settingsVM.SelectedDeviceId))
+                        settingsVM.SelectDevice(id);
                 }
             }
-
-            ImGui.EndCombo();
         }
-
-        if (changed)
-            Plugin.Save();
     }
 
-    private static bool DrawSingleSelection
+    // ════════════════════════════════════════════════════════════════
+    //  复用渲染组件
+    // ════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    ///     渲染带默认值标记的滑块, 变更时自动持久化
+    /// </summary>
+    private void DrawSliderWithDefault
+    (
+        string  label,
+        string  id,
+        ref int value,
+        int     min,
+        int     max
+    )
+    {
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(label).X - ImGui.GetFrameHeight());
+
+        if (ImGui.SliderInt($"{label}###{id}", ref value, min, max))
+            dashboardVM.Flush();
+    }
+
+    /// <summary>
+    ///     单选下拉框
+    /// </summary>
+    private static void DrawSingleSelect
     (
         string                label,
         string                id,
         IReadOnlyList<string> options,
-        ref string?           value
+        string?               currentValue,
+        Action<string?>       onSelect
     )
     {
-        var       changed = false;
-        using var combo   = ImRaii.Combo($"{label}###{id}", value ?? string.Empty);
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(label).X - ImGui.GetFrameHeight());
+        using var combo = ImRaii.Combo($"{label}###{id}", currentValue ?? Loc.Get("Window.DefaultOption"));
 
-        if (combo)
+        if (!combo)
+            return;
+
+        if (ImGui.Selectable(Loc.Get("Window.DefaultOption"), currentValue == null))
+            onSelect(null);
+
+        foreach (var option in options)
         {
-            foreach (var option in options)
-            {
-                if (ImGui.Selectable(option, string.Equals(value, option, StringComparison.OrdinalIgnoreCase)))
-                {
-                    value   = option;
-                    changed = true;
-                }
-            }
+            if (ImGui.Selectable(option, string.Equals(currentValue, option, StringComparison.OrdinalIgnoreCase)))
+                onSelect(option);
         }
-
-        return changed;
     }
 
-    private static bool DrawMultiSelection
+    /// <summary>
+    ///     多选下拉框, 返回是否有变更
+    /// </summary>
+    private static bool DrawMultiSelect
     (
         string                label,
         string                id,
@@ -394,43 +382,46 @@ internal sealed class MainWindow : Window
     {
         var changed = false;
         var preview = values.Count == 0 ?
-                          string.Empty :
+                          Loc.Get("Window.NoneSelected") :
                           string.Join(", ", values);
+
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(label).X - ImGui.GetFrameHeight());
         using var combo = ImRaii.Combo($"{label}###{id}", preview, ImGuiComboFlags.HeightLargest);
 
-        if (combo)
-        {
-            foreach (var option in options)
-            {
-                var selected = values.Contains(option, StringComparer.OrdinalIgnoreCase);
-                if (!ImGui.Selectable(option, selected, ImGuiSelectableFlags.DontClosePopups))
-                    continue;
+        if (!combo)
+            return false;
 
-                if (selected)
-                    values.RemoveAll(value => string.Equals(value, option, StringComparison.OrdinalIgnoreCase));
-                else
-                    values.Add(option);
-                changed = true;
-            }
+        if (options.Count == 0)
+        {
+            ImGui.TextDisabled(Loc.Get("Window.NoOptionsAvailable"));
+            return false;
+        }
+
+        foreach (var option in options)
+        {
+            var selected = values.Contains(option, StringComparer.OrdinalIgnoreCase);
+
+            if (!ImGui.Selectable(option, selected, ImGuiSelectableFlags.DontClosePopups))
+                continue;
+
+            if (selected)
+                values.RemoveAll(v => string.Equals(v, option, StringComparison.OrdinalIgnoreCase));
+            else
+                values.Add(option);
+
+            changed = true;
         }
 
         return changed;
     }
 
-    private static VoiceInfo? GetSelectedVoice
-    (
-        EdgeTTSSettings settings
-    ) =>
-        Plugin.Engine.Voices.Values
-              .SelectMany(genders => genders.Values)
-              .SelectMany(voices => voices)
-              .FirstOrDefault(voice => string.Equals(voice.ShortName, settings.Voice, StringComparison.OrdinalIgnoreCase));
+    // ════════════════════════════════════════════════════════════════
+    //  快捷属性 — settings 字段的简写
+    // ════════════════════════════════════════════════════════════════
 
-    private static string GetAudioDeviceName
-    (
-        int deviceId
-    ) =>
-        Plugin.Engine.AudioDevices.TryGetValue(deviceId, out var device) ?
-            $"{deviceId + 1}. {device.Name}" :
-            Loc.Get("Window.DefaultDevice");
+    private EdgeTTSSettings settings                   => Plugin.PluginConfig.Settings;
+    private string?         settingsStyle              => settings.Style;
+    private string?         settingsRole               => settings.Role;
+    private List<string>    settingsContentCategories  => settings.ContentCategories;
+    private List<string>    settingsVoicePersonalities => settings.VoicePersonalities;
 }
