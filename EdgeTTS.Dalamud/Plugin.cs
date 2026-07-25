@@ -1,6 +1,5 @@
 using Dalamud.Plugin;
 using EdgeTTS.Models;
-using OmenTools;
 using OmenTools.Dalamud;
 using OmenTools.OmenService;
 
@@ -10,7 +9,7 @@ public sealed class Plugin : IAsyncDalamudPlugin
 {
     private static IDalamudPluginInterface pluginInterface = null!;
 
-    internal static PluginConfig PluginConfig { get; private set; } = null!;
+    internal static PluginConfig Config { get; private set; } = null!;
 
     internal static EdgeTTSEngine Engine { get; private set; } = null!;
 
@@ -27,9 +26,12 @@ public sealed class Plugin : IAsyncDalamudPlugin
     {
         DService.Init(pluginInterface);
 
-        Loc.Initialize(Path.Combine(pluginInterface.AssemblyLocation.DirectoryName, "Assets", "Langs"));
+        _ = FontManager.Instance().UIFont80;
 
-        PluginConfig = pluginInterface.GetPluginConfig() as PluginConfig ?? new();
+        Lang.Initialize(Path.Combine(pluginInterface.AssemblyLocation.DirectoryName, "Assets", "Langs"));
+
+        Config = pluginInterface.GetPluginConfig() as PluginConfig ?? new();
+        LocalizationManager.Instance().LoadLanguage(Config.Language);
 
         Engine = new
         (
@@ -40,9 +42,13 @@ public sealed class Plugin : IAsyncDalamudPlugin
 
         Save();
 
-        WindowManager.Instance().AddWindow<MainWindow>();
+        var windowManager = WindowManager.Instance();
+        windowManager.AddWindow<MainWindow>();
+        windowManager.RegDrawScopes(() => FontManager.Instance().UIFont80.Push());
 
-        CommandManager.Instance().MainCommand = new("/edgetts", new(OnCommand) { HelpMessage = Loc.Get("Command.MainHelp") });
+        var commandManager = CommandManager.Instance();
+        commandManager.MainCommand = new("/edgetts", new(OnCommand) { HelpMessage = Lang.Get("Command.Main.Help") });
+        commandManager.AddSubCommand("speak", new(OnSpeakCommand) { HelpMessage = Lang.Get("Command.Speak.Help") });
 
         pluginInterface.UiBuilder.OpenConfigUi += OpenConfigUi;
 
@@ -60,7 +66,7 @@ public sealed class Plugin : IAsyncDalamudPlugin
     }
 
     internal static void Save() =>
-        pluginInterface.SavePluginConfig(PluginConfig);
+        pluginInterface.SavePluginConfig(Config);
 
     internal static void Speak
     (
@@ -88,7 +94,7 @@ public sealed class Plugin : IAsyncDalamudPlugin
         if (string.IsNullOrWhiteSpace(text))
             return;
 
-        var settings = CopySettings(PluginConfig.Settings);
+        var settings = CopySettings(Config.Settings);
         settings.Speed  = Math.Clamp(speed  ?? settings.Speed,  1, 200);
         settings.Pitch  = Math.Clamp(pitch  ?? settings.Pitch,  1, 200);
         settings.Volume = Math.Clamp(volume ?? settings.Volume, 0, 100);
@@ -124,7 +130,7 @@ public sealed class Plugin : IAsyncDalamudPlugin
         if (string.IsNullOrWhiteSpace(text))
             return;
 
-        var settings = CopySettings(PluginConfig.Settings);
+        var settings = CopySettings(Config.Settings);
         settings.Speed  = Math.Clamp(speed  ?? settings.Speed,  1, 200);
         settings.Pitch  = Math.Clamp(pitch  ?? settings.Pitch,  1, 200);
         settings.Volume = Math.Clamp(volume ?? settings.Volume, 0, 100);
@@ -157,7 +163,7 @@ public sealed class Plugin : IAsyncDalamudPlugin
         if (string.IsNullOrWhiteSpace(text))
             return;
 
-        var settings = CopySettings(PluginConfig.Settings);
+        var settings = CopySettings(Config.Settings);
         settings.Speed  = Math.Clamp(speed  ?? settings.Speed,  1, 200);
         settings.Pitch  = Math.Clamp(pitch  ?? settings.Pitch,  1, 200);
         settings.Volume = Math.Clamp(volume ?? settings.Volume, 0, 100);
@@ -193,7 +199,7 @@ public sealed class Plugin : IAsyncDalamudPlugin
         if (string.IsNullOrWhiteSpace(text))
             return Task.CompletedTask;
 
-        var settings = CopySettings(PluginConfig.Settings);
+        var settings = CopySettings(Config.Settings);
         settings.Speed  = Math.Clamp(speed  ?? settings.Speed,  1, 200);
         settings.Pitch  = Math.Clamp(pitch  ?? settings.Pitch,  1, 200);
         settings.Volume = Math.Clamp(volume ?? settings.Volume, 0, 100);
@@ -231,7 +237,27 @@ public sealed class Plugin : IAsyncDalamudPlugin
         string args
     )
     {
+        args = args.Trim();
+
+        if (!string.IsNullOrWhiteSpace(args))
+        {
+            Speak(args);
+            return;
+        }
+
         if (WindowManager.Instance().Get<MainWindow>() is { } window)
             window.IsOpen ^= true;
+    }
+
+    private static void OnSpeakCommand
+    (
+        string command,
+        string args
+    )
+    {
+        args = args.Trim();
+
+        if (!string.IsNullOrWhiteSpace(args))
+            Speak(args);
     }
 }

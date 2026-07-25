@@ -1,5 +1,6 @@
 {
-    "Command.MainHelp": "打开 EdgeTTS 设置",
+    "Command.Main.Help": "打开 EdgeTTS 设置",
+    "Command.Speak.Help": "<文本> 朗读指定的文本",
     "Gender.Female": "女",
     "Gender.Male": "男",
     "Window.AddReplacement": "添加",
@@ -15,7 +16,7 @@
     "Window.OriginalText": "原文",
     "Window.PhonemeReplacements": "同音字替换",
     "Window.Pitch": "音高",
-    "Window.ReadTest": "朗读测试文本",
+    "Window.ReadTest": "朗读",
     "Window.Remove": "删除",
     "Window.ReplacementText": "替换",
     "Window.Reset": "默认",
@@ -33,5 +34,6 @@
     "Window.VoiceOptions": "基础参数",
     "Window.VoicePersonalities": "声音性格",
     "Window.Voices": "音色",
-    "Window.Volume": "音量"
+    "Window.Volume": "音量",
+    "Window.Language": "语言"
 }

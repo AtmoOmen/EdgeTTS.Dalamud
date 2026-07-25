@@ -1,10 +1,8 @@
 using System.Numerics;
-using Dalamud.Bindings.ImGui;
-using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using EdgeTTS.Dalamud.ViewModels;
 using EdgeTTS.Models;
-using OmenTools.Extensions;
+using OmenTools.OmenService;
 
 namespace EdgeTTS.Dalamud;
 
@@ -14,9 +12,9 @@ internal sealed class MainWindow : Window
     private readonly DashboardViewModel     dashboardVM;
     private readonly SettingsViewModel      settingsVM;
 
-    public MainWindow() : base(Loc.Get("Window.Title"))
+    public MainWindow() : base(Lang.Get("Window.Title"))
     {
-        var settings = Plugin.PluginConfig.Settings;
+        var settings = Plugin.Config.Settings;
         var engine   = Plugin.Engine;
         var save     = Plugin.Save;
 
@@ -38,22 +36,24 @@ internal sealed class MainWindow : Window
         if (!tabBar)
             return;
 
-        using (var tab = ImRaii.TabItem(Loc.Get("Window.TabDashboard")))
+        using (var tab = ImRaii.TabItem(Lang.Get("Window.TabDashboard")))
         {
             if (tab)
                 DrawDashboard();
         }
 
-        using (var tab = ImRaii.TabItem(Loc.Get("Window.TabVoices")))
+        using (var tab = ImRaii.TabItem(Lang.Get("Window.TabVoices")))
         {
             if (tab)
                 DrawVoiceExplorer();
         }
 
-        using (var tab = ImRaii.TabItem(Loc.Get("Window.TabSettings")))
+        using (var tab = ImRaii.TabItem($"  {FontAwesomeIcon.Cog.ToIconString()}  "))
         {
             if (tab)
                 DrawSettings();
+            else
+                ImGuiOm.TooltipHover(Lang.Get("Window.TabSettings"));
         }
     }
 
@@ -63,19 +63,19 @@ internal sealed class MainWindow : Window
 
         if (voice == null)
         {
-            ImGui.TextDisabled(Loc.Get("Window.NoVoiceSelected"));
+            ImGui.TextDisabled(Lang.Get("Window.NoVoiceSelected"));
             ImGui.Separator();
             return;
         }
-        
-        ImGui.TextUnformatted($"{Loc.Get("Window.CurrentVoice")}: ");
-        
+
+        ImGui.TextUnformatted($"{Lang.Get("Window.CurrentVoice")}: ");
+
         ImGui.SameLine();
         ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), voice.FriendlyName);
-        
+
         ImGui.SameLine();
-        ImGui.TextDisabled($"({voice.LocaleInfo.DisplayName} / {Loc.Get($"Gender.{voice.Gender}")})");
-        
+        ImGui.TextDisabled($"({voice.LocaleInfo.DisplayName} / {Lang.Get($"Gender.{voice.Gender}")})");
+
         ImGui.Spacing();
         ImGui.Separator();
     }
@@ -89,12 +89,12 @@ internal sealed class MainWindow : Window
             return;
 
         // ── 基础参数 ──
-        ImGui.TextUnformatted(Loc.Get("Window.VoiceOptions"));
+        ImGui.TextUnformatted(Lang.Get("Window.VoiceOptions"));
         ImGui.Separator();
 
-        DrawSliderWithDefault(Loc.Get("Window.Speed"),  "##SpeedSlider",  ref dashboardVM.SpeedRef,  1, 200);
-        DrawSliderWithDefault(Loc.Get("Window.Pitch"),  "##PitchSlider",  ref dashboardVM.PitchRef,  1, 200);
-        DrawSliderWithDefault(Loc.Get("Window.Volume"), "##VolumeSlider", ref dashboardVM.VolumeRef, 0, 100);
+        DrawSliderWithDefault(Lang.Get("Window.Speed"),  "##SpeedSlider",  ref dashboardVM.SpeedRef,  1, 200);
+        DrawSliderWithDefault(Lang.Get("Window.Pitch"),  "##PitchSlider",  ref dashboardVM.PitchRef,  1, 200);
+        DrawSliderWithDefault(Lang.Get("Window.Volume"), "##VolumeSlider", ref dashboardVM.VolumeRef, 0, 100);
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -106,24 +106,24 @@ internal sealed class MainWindow : Window
 
         // 风格
         if (hasStyles)
-            DrawSingleSelect(Loc.Get("Window.Style"), "StyleSelect", tag.Styles, settingsStyle, dashboardVM.SetStyle);
+            DrawSingleSelect(Lang.Get("Window.Style"), "StyleSelect", tag.Styles, settingsStyle, dashboardVM.SetStyle);
         else if (settingsStyle != null)
             dashboardVM.SetStyle(null);
 
         // 风格强度: 仅在有风格可选时显示
         if (hasStyles)
-            DrawSliderWithDefault(Loc.Get("Window.StyleDegree"), "##StyleDegreeSlider", ref dashboardVM.StyleDegreeRef, 1, 200);
+            DrawSliderWithDefault(Lang.Get("Window.StyleDegree"), "##StyleDegreeSlider", ref dashboardVM.StyleDegreeRef, 1, 200);
 
         // 角色
         if (hasRoles)
-            DrawSingleSelect(Loc.Get("Window.Role"), "RoleSelect", tag.Roles, settingsRole, dashboardVM.SetRole);
+            DrawSingleSelect(Lang.Get("Window.Role"), "RoleSelect", tag.Roles, settingsRole, dashboardVM.SetRole);
         else if (settingsRole != null)
             dashboardVM.SetRole(null);
 
         // ── 多选标签 ──
         var changed = DrawMultiSelect
         (
-            Loc.Get("Window.ContentCategories"),
+            Lang.Get("Window.ContentCategories"),
             "ContentCategories",
             tag.ContentCategories,
             settingsContentCategories
@@ -134,7 +134,7 @@ internal sealed class MainWindow : Window
 
         changed = DrawMultiSelect
         (
-            Loc.Get("Window.VoicePersonalities"),
+            Lang.Get("Window.VoicePersonalities"),
             "VoicePersonalities",
             tag.VoicePersonalities,
             settingsVoicePersonalities
@@ -147,7 +147,7 @@ internal sealed class MainWindow : Window
         ImGui.Separator();
 
         // ── 测试文本与播放 ──
-        ImGui.TextUnformatted(Loc.Get("Window.TestText"));
+        ImGui.TextUnformatted(Lang.Get("Window.TestText"));
 
         var testText = dashboardVM.TestText;
         ImGui.SetNextItemWidth(-1f);
@@ -161,7 +161,7 @@ internal sealed class MainWindow : Window
             ))
             dashboardVM.TestText = testText;
 
-        if (ImGui.Button(Loc.Get("Window.ReadTest"), new(ImGui.GetContentRegionAvail().X, 0f)))
+        if (ImGui.Button(Lang.Get("Window.ReadTest"), new(ImGui.GetContentRegionAvail().X, 0f)))
             dashboardVM.SpeakTest();
     }
 
@@ -171,7 +171,7 @@ internal sealed class MainWindow : Window
         var search = voiceVM.SearchQuery;
         ImGui.SetNextItemWidth(-1f);
 
-        if (ImGui.InputTextWithHint("##VoiceSearchInput", Loc.Get("Window.SearchVoice"), ref search, 256))
+        if (ImGui.InputTextWithHint("##VoiceSearchInput", Lang.Get("Window.SearchVoice"), ref search, 256))
             voiceVM.SearchQuery = search;
 
         ImGui.Spacing();
@@ -195,7 +195,7 @@ internal sealed class MainWindow : Window
 
             foreach (var (gender, voices) in genders)
             {
-                using var genderNode = ImRaii.TreeNode($"{Loc.Get($"Gender.{gender}")}###{locale}-{gender}", treeFlags);
+                using var genderNode = ImRaii.TreeNode($"{Lang.Get($"Gender.{gender}")}###{locale}-{gender}", treeFlags);
                 if (!genderNode)
                     continue;
 
@@ -223,13 +223,13 @@ internal sealed class MainWindow : Window
             return;
 
         // ── 音素替换 ──
-        ImGui.TextUnformatted(Loc.Get("Window.PhonemeReplacements"));
+        ImGui.TextUnformatted(Lang.Get("Window.PhonemeReplacements"));
         ImGui.Separator();
 
         var replacements = settingsVM.Replacements;
 
         if (replacements.Count == 0)
-            ImGui.TextDisabled(Loc.Get("Window.NoReplacements"));
+            ImGui.TextDisabled(Lang.Get("Window.NoReplacements"));
         else
         {
             using var table = ImRaii.Table
@@ -241,15 +241,15 @@ internal sealed class MainWindow : Window
 
             if (table)
             {
-                ImGui.TableSetupColumn(Loc.Get("Window.OriginalText"),    ImGuiTableColumnFlags.WidthStretch, 0.4f);
-                ImGui.TableSetupColumn(Loc.Get("Window.ReplacementText"), ImGuiTableColumnFlags.WidthStretch, 0.4f);
+                ImGui.TableSetupColumn(Lang.Get("Window.OriginalText"),    ImGuiTableColumnFlags.WidthStretch, 0.4f);
+                ImGui.TableSetupColumn(Lang.Get("Window.ReplacementText"), ImGuiTableColumnFlags.WidthStretch, 0.4f);
                 ImGui.TableSetupColumn
                 (
                     "##Actions",
                     ImGuiTableColumnFlags.WidthFixed,
-                    ImGui.CalcTextSize(Loc.Get("Window.Remove")).X + (20f * GlobalUIScale)
+                    ImGui.CalcTextSize(Lang.Get("Window.Remove")).X + (20f * GlobalUIScale)
                 );
-                
+
                 ImGui.TableHeadersRow();
 
                 foreach (var pair in replacements.ToArray())
@@ -261,7 +261,7 @@ internal sealed class MainWindow : Window
                     ImGui.TextUnformatted(pair.Value);
                     ImGui.TableNextColumn();
 
-                    if (ImGui.Button($"{Loc.Get("Window.Remove")}###Remove_{pair.Key}"))
+                    if (ImGui.Button($"{Lang.Get("Window.Remove")}###Remove_{pair.Key}"))
                         settingsVM.RemoveReplacement(pair.Key);
                 }
             }
@@ -275,26 +275,24 @@ internal sealed class MainWindow : Window
             var value = settingsVM.ReplacementValue;
 
             ImGui.SetNextItemWidth(100f * GlobalUIScale);
-            ImGui.InputTextWithHint("##ReplacementKeyInput", Loc.Get("Window.OriginalText"), ref key, 256);
+            ImGui.InputTextWithHint("##ReplacementKeyInput", Lang.Get("Window.OriginalText"), ref key, 256);
             settingsVM.ReplacementKey = key;
 
             ImGui.SameLine();
             ImGui.SetNextItemWidth(100f * GlobalUIScale);
-            ImGui.InputTextWithHint("##ReplacementValueInput", Loc.Get("Window.ReplacementText"), ref value, 256);
+            ImGui.InputTextWithHint("##ReplacementValueInput", Lang.Get("Window.ReplacementText"), ref value, 256);
             settingsVM.ReplacementValue = value;
 
             ImGui.SameLine();
 
-            if (ImGui.Button(Loc.Get("Window.AddReplacement")))
+            if (ImGui.Button(Lang.Get("Window.AddReplacement")))
                 settingsVM.AddReplacement();
         }
 
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
+        ImGui.NewLine();
 
         // ── 音频设备 ──
-        ImGui.TextUnformatted(Loc.Get("Window.AudioDevice"));
+        ImGui.TextUnformatted(Lang.Get("Window.AudioDevice"));
         ImGui.Separator();
         ImGui.SetNextItemWidth(-1f);
 
@@ -305,7 +303,7 @@ internal sealed class MainWindow : Window
             if (combo)
             {
                 // 默认设备选项
-                if (ImGui.Selectable(Loc.Get("Window.DefaultDevice"), settingsVM.SelectedDeviceId == -1))
+                if (ImGui.Selectable(Lang.Get("Window.DefaultDevice"), settingsVM.SelectedDeviceId == -1))
                     settingsVM.SelectDevice(-1);
 
                 foreach (var (id, device) in settingsVM.Devices)
@@ -317,11 +315,25 @@ internal sealed class MainWindow : Window
                 }
             }
         }
-    }
 
-    // ════════════════════════════════════════════════════════════════
-    //  复用渲染组件
-    // ════════════════════════════════════════════════════════════════
+        ImGui.NewLine();
+
+        ImGui.TextUnformatted(Lang.Get("Window.Language"));
+        ImGui.Separator();
+        ImGui.SetNextItemWidth(-1f);
+
+        using (var langCombo = ImRaii.Combo("##LanguageCombo", LocalizationManager.Instance().AvailableLanguages.GetValueOrDefault(Plugin.Config.Language)))
+        {
+            if (langCombo)
+            {
+                foreach (var (lang, name) in LocalizationManager.Instance().AvailableLanguages)
+                {
+                    if (ImGui.Selectable(name, lang == Plugin.Config.Language))
+                        settingsVM.SelectLanguage(lang);
+                }
+            }
+        }
+    }
 
     /// <summary>
     ///     渲染带默认值标记的滑块, 变更时自动持久化
@@ -354,12 +366,12 @@ internal sealed class MainWindow : Window
     )
     {
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(label).X - ImGui.GetFrameHeight());
-        using var combo = ImRaii.Combo($"{label}###{id}", currentValue ?? Loc.Get("Window.DefaultOption"));
+        using var combo = ImRaii.Combo($"{label}###{id}", currentValue ?? Lang.Get("Window.DefaultOption"));
 
         if (!combo)
             return;
 
-        if (ImGui.Selectable(Loc.Get("Window.DefaultOption"), currentValue == null))
+        if (ImGui.Selectable(Lang.Get("Window.DefaultOption"), currentValue == null))
             onSelect(null);
 
         foreach (var option in options)
@@ -382,7 +394,7 @@ internal sealed class MainWindow : Window
     {
         var changed = false;
         var preview = values.Count == 0 ?
-                          Loc.Get("Window.NoneSelected") :
+                          Lang.Get("Window.NoneSelected") :
                           string.Join(", ", values);
 
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(label).X - ImGui.GetFrameHeight());
@@ -393,7 +405,7 @@ internal sealed class MainWindow : Window
 
         if (options.Count == 0)
         {
-            ImGui.TextDisabled(Loc.Get("Window.NoOptionsAvailable"));
+            ImGui.TextDisabled(Lang.Get("Window.NoOptionsAvailable"));
             return false;
         }
 
@@ -419,7 +431,7 @@ internal sealed class MainWindow : Window
     //  快捷属性 — settings 字段的简写
     // ════════════════════════════════════════════════════════════════
 
-    private EdgeTTSSettings settings                   => Plugin.PluginConfig.Settings;
+    private EdgeTTSSettings settings                   => Plugin.Config.Settings;
     private string?         settingsStyle              => settings.Style;
     private string?         settingsRole               => settings.Role;
     private List<string>    settingsContentCategories  => settings.ContentCategories;

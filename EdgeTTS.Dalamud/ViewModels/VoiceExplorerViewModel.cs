@@ -6,24 +6,12 @@ namespace EdgeTTS.Dalamud.ViewModels;
 ///     音色浏览器的状态与逻辑, 负责搜索过滤、语音选择及副作用清理
 /// </summary>
 internal sealed class VoiceExplorerViewModel
+(
+    EdgeTTSEngine   engine,
+    EdgeTTSSettings settings,
+    Action          save
+)
 {
-    private readonly EdgeTTSEngine        engine;
-    private readonly EdgeTTSSettings      settings;
-    private readonly Action               save;
-    private          IReadOnlyList<VoiceInfo>? flatVoices;
-
-    public VoiceExplorerViewModel
-    (
-        EdgeTTSEngine   engine,
-        EdgeTTSSettings settings,
-        Action          save
-    )
-    {
-        this.engine   = engine;
-        this.settings = settings;
-        this.save     = save;
-    }
-
     /// <summary>
     ///     搜索查询文本, 由 UI 双向绑定
     /// </summary>
@@ -36,13 +24,13 @@ internal sealed class VoiceExplorerViewModel
     {
         get
         {
-            if (flatVoices != null)
-                return flatVoices;
+            if (field != null)
+                return field;
 
-            return flatVoices = engine.Voices.Values
-                                         .SelectMany(g => g.Values)
-                                         .SelectMany(v => v)
-                                         .ToArray();
+            return field = engine.Voices.Values
+                                 .SelectMany(g => g.Values)
+                                 .SelectMany(v => v)
+                                 .ToArray();
         }
     }
 
@@ -70,9 +58,7 @@ internal sealed class VoiceExplorerViewModel
                 IReadOnlyList<VoiceInfo> matching;
 
                 if (noQuery || localeMatches)
-                {
                     matching = voices;
-                }
                 else
                 {
                     matching = voices.Where

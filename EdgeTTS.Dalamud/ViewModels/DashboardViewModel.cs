@@ -45,7 +45,8 @@ internal sealed class DashboardViewModel
               .SelectMany(g => g.Values)
               .SelectMany(v => v)
               .FirstOrDefault(v => string.Equals(v.ShortName, settings.Voice, StringComparison.OrdinalIgnoreCase))?
-              .VoiceTag ?? new();
+              .VoiceTag ??
+        new();
 
     /// <summary>
     ///     当前选中音色
@@ -147,7 +148,7 @@ internal sealed class DashboardViewModel
         if (volume != settings.Volume)
         {
             settings.Volume = volume;
-            dirty          = true;
+            dirty           = true;
         }
 
         if (styleDegree != settings.StyleDegree)

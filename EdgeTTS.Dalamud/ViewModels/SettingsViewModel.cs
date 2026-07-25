@@ -1,4 +1,6 @@
 using EdgeTTS.Models;
+using Lumina.Data;
+using OmenTools.OmenService;
 
 namespace EdgeTTS.Dalamud.ViewModels;
 
@@ -6,23 +8,12 @@ namespace EdgeTTS.Dalamud.ViewModels;
 ///     设置面板的状态与逻辑, 管理音素替换表和音频设备选择
 /// </summary>
 internal sealed class SettingsViewModel
+(
+    EdgeTTSEngine   engine,
+    EdgeTTSSettings settings,
+    Action          save
+)
 {
-    private readonly EdgeTTSEngine   engine;
-    private readonly EdgeTTSSettings settings;
-    private readonly Action          save;
-
-    public SettingsViewModel
-    (
-        EdgeTTSEngine   engine,
-        EdgeTTSSettings settings,
-        Action          save
-    )
-    {
-        this.engine   = engine;
-        this.settings = settings;
-        this.save     = save;
-    }
-
     // ── 音素替换 ──
 
     /// <summary>
@@ -49,8 +40,8 @@ internal sealed class SettingsViewModel
             return;
 
         settings.PhonemeReplacements[ReplacementKey] = ReplacementValue;
-        ReplacementKey                                = string.Empty;
-        ReplacementValue                              = string.Empty;
+        ReplacementKey                               = string.Empty;
+        ReplacementValue                             = string.Empty;
         save();
     }
 
@@ -102,5 +93,18 @@ internal sealed class SettingsViewModel
     ) =>
         engine.AudioDevices.TryGetValue(deviceId, out var device) ?
             $"{deviceId + 1}. {device.Name}" :
-            Loc.Get("Window.DefaultDevice");
+            Lang.Get("Window.DefaultDevice");
+    
+    public void SelectLanguage
+    (
+        Language lang
+    )
+    {
+        if (Plugin.Config.Language == lang)
+            return;
+
+        Plugin.Config.Language = lang;
+        LocalizationManager.Instance().LoadLanguage(lang);
+        save();
+    }
 }

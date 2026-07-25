@@ -6,7 +6,7 @@ using OmenTools.OmenService;
 
 namespace EdgeTTS.Dalamud;
 
-internal static class Loc
+internal static class Lang
 {
     public static void Initialize
     (
@@ -18,10 +18,21 @@ internal static class Loc
             {
                 SupportedLanguages = new Dictionary<Language, string>
                 {
-                    [Language.ChineseSimplified] = "简体中文"
+                    [Language.ChineseSimplified]  = "简体中文",
+                    [Language.TraditionalChinese] = "繁體中文",
+                    [Language.Japanese]           = "日本語",
+                    [Language.Korean]             = "한국어",
+                    [Language.English]            = "English",
+                    [Language.French]             = "Français",
+                    [Language.German]             = "Deutsch"
                 }.ToFrozenDictionary(),
                 DefaultLanguage  = Language.ChineseSimplified,
-                FileNameResolver = static language => $"{language}.json",
+                FileNameResolver = static language =>
+                {
+                    if (language == Language.ChineseTraditional)
+                        language = Language.TraditionalChinese;
+                    return $"{language}.json";
+                },
                 Source           = new FileLocalizationSource(directory),
                 Parser           = new JsonDictionaryLocalizationParser(),
                 FallbackResolver = static _ => [],
