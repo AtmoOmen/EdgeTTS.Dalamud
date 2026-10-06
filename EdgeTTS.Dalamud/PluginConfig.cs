@@ -12,5 +12,5 @@ public sealed class PluginConfig : IPluginConfiguration
 
     public EdgeTTSSettings Settings { get; set; } = new();
 
-    public Language Language { get; set; } = GameState.ClientLanguge;
+    public Language Language { get; set; } = GameState.ClientLanguage;
 }

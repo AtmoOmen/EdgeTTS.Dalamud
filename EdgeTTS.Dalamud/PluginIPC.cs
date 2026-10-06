@@ -14,12 +14,12 @@ public static class PluginIPC
     [IPCProvider("EdgeTTS.SpeakWithOptions")]
     public static void SpeakWithOptions
     (
-        string text,
-        int?   speed = null,
-        int?   pitch = null,
-        int?   volume = null
+        string  text,
+        object? speed  = null,
+        object? pitch  = null,
+        object? volume = null
     ) =>
-        Plugin.Speak(text, speed, pitch, volume);
+        Plugin.Speak(text, ToOption(speed), ToOption(pitch), ToOption(volume));
 
     [IPCProvider("EdgeTTS.SpeakAsync")]
     public static Task SpeakAsync
@@ -33,12 +33,12 @@ public static class PluginIPC
     public static Task SpeakWithOptionsAsync
     (
         string            text,
-        int?              speed = null,
-        int?              pitch = null,
-        int?              volume = null,
+        object?           speed             = null,
+        object?           pitch             = null,
+        object?           volume            = null,
         CancellationToken cancellationToken = default
     ) =>
-        Plugin.SpeakAsync(text, speed, pitch, volume, cancellationToken);
+        Plugin.SpeakAsync(text, ToOption(speed), ToOption(pitch), ToOption(volume), cancellationToken);
 
     [IPCProvider("EdgeTTS.Synthesize")]
     public static void Synthesize
@@ -50,12 +50,12 @@ public static class PluginIPC
     [IPCProvider("EdgeTTS.SynthesizeWithOptions")]
     public static void SynthesizeWithOptions
     (
-        string text,
-        int?   speed = null,
-        int?   pitch = null,
-        int?   volume = null
+        string  text,
+        object? speed  = null,
+        object? pitch  = null,
+        object? volume = null
     ) =>
-        Plugin.Synthesize(text, speed, pitch, volume);
+        Plugin.Synthesize(text, ToOption(speed), ToOption(pitch), ToOption(volume));
 
     [IPCProvider("EdgeTTS.SynthesizeAsync")]
     public static Task SynthesizeAsync
@@ -69,10 +69,16 @@ public static class PluginIPC
     public static Task SynthesizeWithOptionsAsync
     (
         string            text,
-        int?              speed = null,
-        int?              pitch = null,
-        int?              volume = null,
+        object?           speed             = null,
+        object?           pitch             = null,
+        object?           volume            = null,
         CancellationToken cancellationToken = default
     ) =>
-        Plugin.SynthesizeAsync(text, speed, pitch, volume, cancellationToken);
+        Plugin.SynthesizeAsync(text, ToOption(speed), ToOption(pitch), ToOption(volume), cancellationToken);
+
+    private static int? ToOption
+    (
+        object? value
+    ) =>
+        value as int?;
 }
