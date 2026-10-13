@@ -109,10 +109,14 @@
           "System.Net.WebSockets.Client.Managed": "[1.0.22, )"
         }
       },
+      "ffxivclientstructs.expansion": {
+        "type": "Project"
+      },
       "omentools": {
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.8.0, )",
+          "FFXIVClientStructs.Expansion": "[1.0.0, )",
           "GuerrillaNtp": "[3.1.0, )",
           "Markdig": "[0.43.0, )",
           "MessageFormat": "[8.0.0, )",

@@ -4,4 +4,6 @@
     <Project Path="OmenTools/OmenTools.csproj" />
   </Folder>
   <Project Path="EdgeTTS.Dalamud/EdgeTTS.Dalamud.csproj" />
+  <Project Path="FFXIVClientStructs.Expansion/FFXIVClientStructs.Expansion/FFXIVClientStructs.Expansion.csproj"/>
+  <Project Path="FFXIVClientStructs.Expansion/FFXIVClientStructs.Expansion.Generators/FFXIVClientStructs.Expansion.Generators.csproj" />
 </Solution>
