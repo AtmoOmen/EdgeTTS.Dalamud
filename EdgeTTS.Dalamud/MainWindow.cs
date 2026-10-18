@@ -1,7 +1,6 @@
 using System.Numerics;
 using Dalamud.Interface.Windowing;
 using EdgeTTS.Dalamud.ViewModels;
-using EdgeTTS.Models;
 using OmenTools.OmenService;
 
 namespace EdgeTTS.Dalamud;
@@ -99,30 +98,6 @@ internal sealed class MainWindow : Window
         ImGui.Spacing();
         ImGui.Separator();
 
-        // ── 表现参数 ──
-        var tag       = dashboardVM.CurrentVoiceTag;
-        var hasStyles = tag.Styles.Count > 0;
-        var hasRoles  = tag.Roles.Count  > 0;
-
-        // 风格
-        if (hasStyles)
-            DrawSingleSelect(Lang.Get("Window.Style"), "StyleSelect", tag.Styles, settingsStyle, dashboardVM.SetStyle);
-        else if (settingsStyle != null)
-            dashboardVM.SetStyle(null);
-
-        // 风格强度: 仅在有风格可选时显示
-        if (hasStyles)
-            DrawSliderWithDefault(Lang.Get("Window.StyleDegree"), "##StyleDegreeSlider", ref dashboardVM.StyleDegreeRef, 1, 200);
-
-        // 角色
-        if (hasRoles)
-            DrawSingleSelect(Lang.Get("Window.Role"), "RoleSelect", tag.Roles, settingsRole, dashboardVM.SetRole);
-        else if (settingsRole != null)
-            dashboardVM.SetRole(null);
-
-        ImGui.Spacing();
-        ImGui.Separator();
-
         // ── 测试文本与播放 ──
         ImGui.TextUnformatted(Lang.Get("Window.TestText"));
 
@@ -144,12 +119,29 @@ internal sealed class MainWindow : Window
 
     private void DrawVoiceExplorer()
     {
+        voiceVM.PollRefresh();
+
         // 搜索栏
-        var search = voiceVM.SearchQuery;
-        ImGui.SetNextItemWidth(-1f);
+        var search      = voiceVM.SearchQuery;
+        var buttonLabel = Lang.Get("Window.RefreshVoices");
+        var buttonWidth = ImGui.CalcTextSize(buttonLabel).X + (ImGui.GetStyle().FramePadding.X * 2f);
+        var searchWidth = ImGui.GetContentRegionAvail().X   - buttonWidth - ImGui.GetStyle().ItemSpacing.X;
+
+        ImGui.SetNextItemWidth(MathF.Max(searchWidth, 120f * GlobalUIScale));
 
         if (ImGui.InputTextWithHint("##VoiceSearchInput", Lang.Get("Window.SearchVoice"), ref search, 256))
             voiceVM.SearchQuery = search;
+
+        ImGui.SameLine();
+
+        using (ImRaii.Disabled(voiceVM.IsRefreshing))
+        {
+            if (ImGui.Button(buttonLabel))
+                voiceVM.RefreshVoices();
+        }
+
+        if (voiceVM.RefreshStatus is { Length: > 0 } status)
+            ImGui.TextDisabled(status);
 
         ImGui.Spacing();
 
@@ -329,86 +321,4 @@ internal sealed class MainWindow : Window
         if (ImGui.SliderInt($"{label}###{id}", ref value, min, max))
             dashboardVM.Flush();
     }
-
-    /// <summary>
-    ///     单选下拉框
-    /// </summary>
-    private static void DrawSingleSelect
-    (
-        string                label,
-        string                id,
-        IReadOnlyList<string> options,
-        string?               currentValue,
-        Action<string?>       onSelect
-    )
-    {
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(label).X - ImGui.GetFrameHeight());
-        using var combo = ImRaii.Combo($"{label}###{id}", currentValue ?? Lang.Get("Window.DefaultOption"));
-
-        if (!combo)
-            return;
-
-        if (ImGui.Selectable(Lang.Get("Window.DefaultOption"), currentValue == null))
-            onSelect(null);
-
-        foreach (var option in options)
-        {
-            if (ImGui.Selectable(option, string.Equals(currentValue, option, StringComparison.OrdinalIgnoreCase)))
-                onSelect(option);
-        }
-    }
-
-    /// <summary>
-    ///     多选下拉框, 返回是否有变更
-    /// </summary>
-    private static bool DrawMultiSelect
-    (
-        string                label,
-        string                id,
-        IReadOnlyList<string> options,
-        List<string>          values
-    )
-    {
-        var changed = false;
-        var preview = values.Count == 0 ?
-                          Lang.Get("Window.NoneSelected") :
-                          string.Join(", ", values);
-
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(label).X - ImGui.GetFrameHeight());
-        using var combo = ImRaii.Combo($"{label}###{id}", preview, ImGuiComboFlags.HeightLargest);
-
-        if (!combo)
-            return false;
-
-        if (options.Count == 0)
-        {
-            ImGui.TextDisabled(Lang.Get("Window.NoOptionsAvailable"));
-            return false;
-        }
-
-        foreach (var option in options)
-        {
-            var selected = values.Contains(option, StringComparer.OrdinalIgnoreCase);
-
-            if (!ImGui.Selectable(option, selected, ImGuiSelectableFlags.DontClosePopups))
-                continue;
-
-            if (selected)
-                values.RemoveAll(v => string.Equals(v, option, StringComparison.OrdinalIgnoreCase));
-            else
-                values.Add(option);
-
-            changed = true;
-        }
-
-        return changed;
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    //  快捷属性 — settings 字段的简写
-    // ════════════════════════════════════════════════════════════════
-
-    private EdgeTTSSettings settings      => Plugin.Config.Settings;
-    private string?         settingsStyle => settings.Style;
-    private string?         settingsRole  => settings.Role;
 }

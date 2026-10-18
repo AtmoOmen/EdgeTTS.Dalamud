@@ -217,9 +217,6 @@ public sealed class Plugin : IAsyncDalamudPlugin
             Pitch               = source.Pitch,
             Volume              = source.Volume,
             DeviceID            = source.DeviceID,
-            Style               = source.Style,
-            StyleDegree         = source.StyleDegree,
-            Role                = source.Role,
             PhonemeReplacements = new(source.PhonemeReplacements)
         };
 

@@ -12,10 +12,23 @@ internal sealed class VoiceExplorerViewModel
     Action          save
 )
 {
+    private IReadOnlyList<VoiceInfo>? allVoices;
+    private Task<int>?                refreshTask;
+
     /// <summary>
     ///     搜索查询文本, 由 UI 双向绑定
     /// </summary>
     public string SearchQuery { get; set; } = string.Empty;
+
+    /// <summary>
+    ///     最近一次刷新音色列表的结果说明
+    /// </summary>
+    public string? RefreshStatus { get; private set; }
+
+    /// <summary>
+    ///     是否正在从服务器刷新音色列表
+    /// </summary>
+    public bool IsRefreshing => refreshTask is { IsCompleted: false };
 
     /// <summary>
     ///     扁平化的全部语音列表 (懒加载缓存)
@@ -24,13 +37,10 @@ internal sealed class VoiceExplorerViewModel
     {
         get
         {
-            if (field != null)
-                return field;
+            if (allVoices != null)
+                return allVoices;
 
-            return field = engine.Voices.Values
-                                 .SelectMany(g => g.Values)
-                                 .SelectMany(v => v)
-                                 .ToArray();
+            return allVoices = [.. engine.Voices.Values.SelectMany(g => g.Values).SelectMany(v => v)];
         }
     }
 
@@ -55,19 +65,22 @@ internal sealed class VoiceExplorerViewModel
 
             foreach (var (gender, voices) in genders)
             {
-                IReadOnlyList<VoiceInfo> matching;
+                VoiceInfo[] matching;
 
                 if (noQuery || localeMatches)
                     matching = voices;
                 else
                 {
-                    matching = voices.Where
-                    (v => v.FriendlyName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                          v.ShortName.Contains(query, StringComparison.OrdinalIgnoreCase)    ||
-                          v.Gender.Contains(query, StringComparison.OrdinalIgnoreCase)
-                    ).ToArray();
+                    matching =
+                    [
+                        .. voices.Where
+                        (v => v.FriendlyName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                              v.ShortName.Contains(query, StringComparison.OrdinalIgnoreCase)    ||
+                              v.Gender.Contains(query, StringComparison.OrdinalIgnoreCase)
+                        )
+                    ];
 
-                    if (matching.Count == 0)
+                    if (matching.Length == 0)
                         continue;
                 }
 
@@ -82,6 +95,35 @@ internal sealed class VoiceExplorerViewModel
     }
 
     /// <summary>
+    ///     发起一次音色列表刷新, 刷新进行中时忽略重复请求
+    /// </summary>
+    public void RefreshVoices()
+    {
+        if (IsRefreshing)
+            return;
+
+        RefreshStatus = null;
+        refreshTask   = engine.RefreshVoicesAsync(CancellationToken.None);
+    }
+
+    /// <summary>
+    ///     由 UI 每帧调用, 在刷新任务结束时更新状态并作废语音缓存
+    /// </summary>
+    public void PollRefresh()
+    {
+        if (refreshTask is not { IsCompleted: true })
+            return;
+
+        var finished = refreshTask;
+        refreshTask = null;
+        allVoices   = null;
+
+        RefreshStatus = finished.IsCompletedSuccessfully ?
+                            string.Format(Lang.Get("Window.RefreshVoicesDone"), finished.Result) :
+                            $"{Lang.Get("Window.RefreshVoicesFailed")}: {finished.Exception?.GetBaseException().Message}";
+    }
+
+    /// <summary>
     ///     选中指定音色, 处理兼容性清理并持久化
     /// </summary>
     public void SelectVoice
@@ -89,7 +131,7 @@ internal sealed class VoiceExplorerViewModel
         VoiceInfo voice
     )
     {
-        settings.SelectVoice(voice);
+        settings.Voice = voice.ShortName;
         save();
     }
 

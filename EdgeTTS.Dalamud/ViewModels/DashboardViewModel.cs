@@ -3,21 +3,20 @@ using EdgeTTS.Models;
 namespace EdgeTTS.Dalamud.ViewModels;
 
 /// <summary>
-///     合成面板的状态与逻辑, 管理滑块、风格/角色选择、测试文本与播放
+///     合成面板的状态与逻辑, 管理滑块、测试文本与播放
 /// </summary>
 internal sealed class DashboardViewModel
 {
+    private const string DefaultTestText = "异国的诗人提出疑问。如果欧米茄作为兵器不断地获得力量并且一直战斗下去的话, 它真的能够找到渴求的答案吗?";
+
     private readonly EdgeTTSEngine   engine;
     private readonly EdgeTTSSettings settings;
     private readonly Action          save;
-
-    private const string DefaultTestText = "异国的诗人提出疑问。如果欧米茄作为兵器不断地获得力量并且一直战斗下去的话, 它真的能够找到渴求的答案吗?";
 
     // 本地可变副本, 供 ImGui 滑块 ref 绑定
     private int speed;
     private int pitch;
     private int volume;
-    private int styleDegree;
 
     public DashboardViewModel
     (
@@ -38,17 +37,6 @@ internal sealed class DashboardViewModel
     public string TestText { get; set; } = DefaultTestText;
 
     /// <summary>
-    ///     当前选中音色的标签信息
-    /// </summary>
-    public VoiceTag CurrentVoiceTag =>
-        engine.Voices.Values
-              .SelectMany(g => g.Values)
-              .SelectMany(v => v)
-              .FirstOrDefault(v => string.Equals(v.ShortName, settings.Voice, StringComparison.OrdinalIgnoreCase))?
-              .VoiceTag ??
-        new();
-
-    /// <summary>
     ///     当前选中音色
     /// </summary>
     public VoiceInfo? SelectedVoice =>
@@ -59,62 +47,17 @@ internal sealed class DashboardViewModel
 
     // ── 参数 ref 属性, 指向本地可变副本供 ImGui 滑块直接修改 ──
 
-    public ref int SpeedRef       => ref speed;
-    public ref int PitchRef       => ref pitch;
-    public ref int VolumeRef      => ref volume;
-    public ref int StyleDegreeRef => ref styleDegree;
+    public ref int SpeedRef  => ref speed;
+    public ref int PitchRef  => ref pitch;
+    public ref int VolumeRef => ref volume;
 
     // ── 从 settings 同步本地副本 ──
 
     public void SyncFromSettings()
     {
-        speed       = settings.Speed;
-        pitch       = settings.Pitch;
-        volume      = settings.Volume;
-        styleDegree = settings.StyleDegree;
-    }
-
-    // ── 风格 / 角色选择 ──
-
-    public void SetStyle
-    (
-        string? style
-    )
-    {
-        if (string.Equals(settings.Style, style, StringComparison.OrdinalIgnoreCase))
-            return;
-
-        settings.Style = style;
-        save();
-    }
-
-    public void SetRole
-    (
-        string? role
-    )
-    {
-        if (string.Equals(settings.Role, role, StringComparison.OrdinalIgnoreCase))
-            return;
-
-        settings.Role = role;
-        save();
-    }
-
-    /// <summary>
-    ///     切换多选标签
-    /// </summary>
-    public void ToggleMultiSelection
-    (
-        List<string> list,
-        string       value
-    )
-    {
-        var removed = list.RemoveAll(v => string.Equals(v, value, StringComparison.OrdinalIgnoreCase)) > 0;
-
-        if (!removed)
-            list.Add(value);
-
-        save();
+        speed  = settings.Speed;
+        pitch  = settings.Pitch;
+        volume = settings.Volume;
     }
 
     /// <summary>
@@ -149,12 +92,6 @@ internal sealed class DashboardViewModel
         {
             settings.Volume = volume;
             dirty           = true;
-        }
-
-        if (styleDegree != settings.StyleDegree)
-        {
-            settings.StyleDegree = styleDegree;
-            dirty                = true;
         }
 
         if (dirty)
