@@ -74,8 +74,8 @@ internal sealed class VoiceExplorerViewModel
                     matching =
                     [
                         .. voices.Where
-                        (v => v.FriendlyName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                              v.ShortName.Contains(query, StringComparison.OrdinalIgnoreCase)    ||
+                        (v => VoiceDisplayName.Get(v).Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                              v.ShortName.Contains(query, StringComparison.OrdinalIgnoreCase)           ||
                               v.Gender.Contains(query, StringComparison.OrdinalIgnoreCase)
                         )
                     ];

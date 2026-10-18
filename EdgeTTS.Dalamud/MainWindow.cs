@@ -70,7 +70,7 @@ internal sealed class MainWindow : Window
         ImGui.TextUnformatted($"{Lang.Get("Window.CurrentVoice")}: ");
 
         ImGui.SameLine();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), voice.FriendlyName);
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToUInt(), VoiceDisplayName.Get(voice));
 
         ImGui.SameLine();
         ImGui.TextDisabled($"({voice.LocaleInfo.DisplayName} / {Lang.Get($"Gender.{voice.Gender}")})");
@@ -170,16 +170,17 @@ internal sealed class MainWindow : Window
 
                 foreach (var voice in voices)
                 {
-                    var selected = voiceVM.IsSelected(voice.ShortName);
+                    var selected  = voiceVM.IsSelected(voice.ShortName);
+                    var voiceName = VoiceDisplayName.Get(voice);
 
-                    if (ImGui.Selectable($"{voice.FriendlyName}###{voice.ShortName}", selected))
+                    if (ImGui.Selectable($"{voiceName}###{voice.ShortName}", selected))
                     {
                         voiceVM.SelectVoice(voice);
                         ImGui.SetScrollHereY();
                     }
 
                     if (ImGui.IsItemHovered())
-                        ImGui.SetTooltip($"{voice.FriendlyName}\n{voice.ShortName}\n{voice.Gender} / {voice.Locale}");
+                        ImGui.SetTooltip($"{voiceName}\n{voice.ShortName}\n{voice.Gender} / {voice.Locale}");
                 }
             }
         }
