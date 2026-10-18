@@ -26,7 +26,7 @@ internal static class Lang
                     [Language.French]             = "Français",
                     [Language.German]             = "Deutsch"
                 }.ToFrozenDictionary(),
-                DefaultLanguage  = Language.ChineseSimplified,
+                DefaultLanguage = Language.ChineseSimplified,
                 FileNameResolver = static language =>
                 {
                     if (language == Language.ChineseTraditional)
@@ -47,4 +47,11 @@ internal static class Lang
         string key
     ) =>
         LocalizationManager.Instance().Get(key);
+
+    public static string Get
+    (
+        string                              key,
+        IReadOnlyDictionary<string, object> args
+    ) =>
+        LocalizationManager.Instance().Get(key, args);
 }

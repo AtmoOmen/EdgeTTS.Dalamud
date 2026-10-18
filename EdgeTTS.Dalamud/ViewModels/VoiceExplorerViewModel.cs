@@ -75,7 +75,7 @@ internal sealed class VoiceExplorerViewModel
                     [
                         .. voices.Where
                         (v => VoiceDisplayName.Get(v).Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                              v.ShortName.Contains(query, StringComparison.OrdinalIgnoreCase)           ||
+                              v.ShortName.Contains(query, StringComparison.OrdinalIgnoreCase)             ||
                               v.Gender.Contains(query, StringComparison.OrdinalIgnoreCase)
                         )
                     ];
@@ -119,8 +119,12 @@ internal sealed class VoiceExplorerViewModel
         allVoices   = null;
 
         RefreshStatus = finished.IsCompletedSuccessfully ?
-                            string.Format(Lang.Get("Window.RefreshVoicesDone"), finished.Result) :
-                            $"{Lang.Get("Window.RefreshVoicesFailed")}: {finished.Exception?.GetBaseException().Message}";
+                            Lang.Get("Window.RefreshVoicesDone", new Dictionary<string, object> { ["count"] = finished.Result }) :
+                            Lang.Get
+                            (
+                                "Window.RefreshVoicesFailed",
+                                new Dictionary<string, object> { ["message"] = finished.Exception?.GetBaseException().Message ?? string.Empty }
+                            );
     }
 
     /// <summary>
